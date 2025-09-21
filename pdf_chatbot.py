@@ -7,12 +7,14 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 import os
+import time
 
 # ✅ Load Google API key safely
 if "GOOGLE_API_KEY" in st.secrets:
     os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
 else:
     st.error("🚨 GOOGLE_API_KEY not found in secrets.toml. Please add it before running the app.")
+    st.stop()
 
 # Page configuration
 st.set_page_config(page_title="Chat with PDF", page_icon="📚")
@@ -31,14 +33,17 @@ def get_pdf_text(pdf_docs):
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
         for page in pdf_reader.pages:
-            text += page.extract_text()
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
     return text
 
 def get_text_chunks(text):
+    # Smaller chunks to prevent embedding timeouts
     text_splitter = CharacterTextSplitter(
         separator="\n",
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=500,   # smaller chunk size
+        chunk_overlap=100,
         length_function=len
     )
     chunks = text_splitter.split_text(text)
@@ -71,25 +76,41 @@ def get_conversation_chain(vectorstore):
     )
     return conversation_chain
 
+def create_embeddings_with_retry(text_chunks, max_retries=3, delay=5):
+    for attempt in range(1, max_retries+1):
+        try:
+            embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+            vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+            return vectorstore
+        except Exception as e:
+            st.warning(f"⚠️ Embedding attempt {attempt} failed: {str(e)}")
+            if attempt < max_retries:
+                st.info(f"Retrying in {delay} seconds...")
+                time.sleep(delay)
+            else:
+                st.error("❌ Failed to create embeddings after multiple attempts. Try smaller PDFs or fewer files.")
+                return None
+
 def process_docs(pdf_docs):
     try:
         # Get PDF text
         raw_text = get_pdf_text(pdf_docs)
         
+        if not raw_text.strip():
+            st.error("❌ No text found in the uploaded PDFs.")
+            return False
+        
         # Get text chunks
         text_chunks = get_text_chunks(raw_text)
         
-        # Create embeddings
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        
-        # Create vector store using FAISS
-        vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+        # Create embeddings with retry
+        vectorstore = create_embeddings_with_retry(text_chunks)
+        if not vectorstore:
+            return False
         
         # Create conversation chain
         st.session_state.conversation = get_conversation_chain(vectorstore)
-        
         st.session_state.processComplete = True
-        
         return True
     except Exception as e:
         st.error(f"An error occurred during processing: {str(e)}")
