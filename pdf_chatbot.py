@@ -1,16 +1,15 @@
 import streamlit as st
 from PyPDF2 import PdfReader
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 import os
 
-# Set OpenAI API key from secrets
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+# Set Google API key from secrets
+os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
 
 # Page configuration
 st.set_page_config(page_title="Chat with PDF", page_icon="📚")
@@ -43,7 +42,7 @@ def get_text_chunks(text):
     return chunks
 
 def get_conversation_chain(vectorstore):
-    llm = ChatOpenAI(temperature=0.7, model_name='gpt-4o')
+    llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7)
     
     template = """You are a helpful AI assistant that helps users understand their PDF documents.
     Use the following pieces of context to answer the question at the end.
@@ -78,7 +77,7 @@ def process_docs(pdf_docs):
         text_chunks = get_text_chunks(raw_text)
         
         # Create embeddings
-        embeddings = OpenAIEmbeddings()
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         
         # Create vector store using FAISS
         vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
@@ -130,4 +129,4 @@ if st.session_state.processComplete:
 
 # Display initial instructions
 else:
-    st.write("👈 Upload your PDFs in the sidebar to get started!")
+    st.write("👈 Upload your PDFs in the sidebar to get started!") 
