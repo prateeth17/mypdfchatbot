@@ -14,43 +14,14 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ✅ Load Google API key with multiple sources
-def load_api_key():
-    # Try multiple sources for API key
-    api_key = None
-    
-    # 1. Try Streamlit secrets
-    if hasattr(st, 'secrets') and "GOOGLE_API_KEY" in st.secrets:
-        api_key = st.secrets["GOOGLE_API_KEY"]
-        logger.info("API key loaded from Streamlit secrets")
-    
-    # 2. Try environment variable
-    elif "GOOGLE_API_KEY" in os.environ:
-        api_key = os.environ["GOOGLE_API_KEY"]
-        logger.info("API key loaded from environment variable")
-    
-    # 3. Try manual input (for development)
-    else:
-        st.sidebar.subheader("🔑 API Configuration")
-        api_key = st.sidebar.text_input(
-            "Enter your Google API Key:", 
-            type="password",
-            help="Get your API key from https://console.developers.google.com/"
-        )
-        if api_key:
-            os.environ["GOOGLE_API_KEY"] = api_key
-            logger.info("API key loaded from user input")
-    
-    return api_key
-
-# Load API key
-api_key = load_api_key()
-
-if not api_key:
-    st.error("🚨 GOOGLE_API_KEY is required. Please:")
-    st.write("1. Add it to your Streamlit secrets.toml file, OR")
-    st.write("2. Set it as an environment variable, OR") 
-    st.write("3. Enter it in the sidebar")
+# ✅ Load Google API key from Streamlit secrets
+if "GOOGLE_API_KEY" in st.secrets:
+    os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+    logger.info("API key loaded from Streamlit secrets")
+else:
+    st.error("🚨 GOOGLE_API_KEY not found in secrets. Please add it to your Streamlit Cloud secrets.")
+    st.write("Go to your Streamlit Cloud app settings → Secrets and add:")
+    st.code('GOOGLE_API_KEY = "your-api-key-here"')
     st.stop()
 
 # Page configuration
