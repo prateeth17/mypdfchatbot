@@ -9,7 +9,7 @@ from langchain.prompts import PromptTemplate
 import os
 
 # Set Google API key from secrets
-os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+os.environ["GOOGLE_API_KEY"] = st.secrets["AIzaSyCUUQ13J6eUrU137KSLNyyLN06Oe8-5yyY"]
 
 # Page configuration
 st.set_page_config(page_title="Chat with PDF", page_icon="📚")
@@ -130,3 +130,4 @@ if st.session_state.processComplete:
 # Display initial instructions
 else:
     st.write("👈 Upload your PDFs in the sidebar to get started!") 
+
