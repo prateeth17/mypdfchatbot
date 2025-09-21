@@ -8,8 +8,11 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 import os
 
-# Set Google API key from secrets
-os.environ["GOOGLE_API_KEY"] = st.secrets["AIzaSyCUUQ13J6eUrU137KSLNyyLN06Oe8-5yyY"]
+# ✅ Load Google API key safely
+if "GOOGLE_API_KEY" in st.secrets:
+    os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+else:
+    st.error("🚨 GOOGLE_API_KEY not found in secrets.toml. Please add it before running the app.")
 
 # Page configuration
 st.set_page_config(page_title="Chat with PDF", page_icon="📚")
@@ -130,4 +133,3 @@ if st.session_state.processComplete:
 # Display initial instructions
 else:
     st.write("👈 Upload your PDFs in the sidebar to get started!") 
-
